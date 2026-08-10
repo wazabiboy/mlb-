@@ -66,7 +66,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed; /* Respect strict des largeurs de colonnes */
+            table-layout: fixed;
         }
 
         th {
@@ -165,8 +165,20 @@
             badge.textContent = "🔮 Matchs À Venir (FOX / FS1 / MLBN / MLB.TV)";
         }
 
+        // URL de l'API MLB ciblée
+        const targetUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${targetDate}&endDate=${targetDate}&hydrate=broadcasts(all)`;
+        
+        // Utilisation du proxy CORS pour compatibilité GitHub Pages / Navigateurs mobiles
+        const apiUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
         try {
-            const res = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${targetDate}&endDate=${targetDate}&hydrate=broadcasts(all)`);
+            let res = await fetch(apiUrl);
+            
+            // Fallback direct si le proxy échoue
+            if (!res.ok) {
+                res = await fetch(targetUrl);
+            }
+
             const data = await res.json();
             
             tbody.innerHTML = '';
@@ -179,30 +191,25 @@
             let filteredGamesCount = 0;
 
             data.dates[0].games.forEach(game => {
-                // Extrait toutes les chaînes associées au match
                 let gameChannels = [];
                 if (game.broadcasts && game.broadcasts.length > 0) {
                     gameChannels = game.broadcasts.map(b => (b.callSign || b.name || '').toUpperCase());
                 }
 
-                // Vérifie si au moins une des chaînes correspond aux critères
                 const matchedChannels = gameChannels.filter(ch => 
                     ALLOWED_CHANNELS.some(allowed => ch.includes(allowed))
                 );
 
-                // Si aucune chaîne recherchée n'est trouvée, on passe au match suivant
                 if (matchedChannels.length === 0) return;
 
                 filteredGamesCount++;
 
-                // Heure locale française
                 const frenchTime = new Date(game.gameDate).toLocaleTimeString('fr-FR', {
                     hour: '2digit',
                     minute: '2digit',
                     timeZone: 'Europe/Paris'
                 });
 
-                // Statut
                 let statusBadge = '<span class="badge badge-sched">Prévu</span>';
                 if (game.status.abstractGameState === 'Live') {
                     statusBadge = '<span class="badge badge-live">Direct</span>';
@@ -210,7 +217,6 @@
                     statusBadge = '<span class="badge badge-final">Fini</span>';
                 }
 
-                // Affichage des chaînes filtrées
                 const uniqueMatched = [...new Set(matchedChannels)];
                 const tvList = uniqueMatched.slice(0, 2).map(c => `<span class="channel-tag">${c}</span>`).join('');
 
@@ -229,7 +235,8 @@
             }
 
         } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Erreur lors du chargement.</td></tr>';
+            console.error(err);
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Erreur lors du chargement des données.</td></tr>';
         }
     }
 
