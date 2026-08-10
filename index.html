@@ -2,170 +2,239 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MLB Mobile Schedule</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matchs MLB - US TV Channels</title>
     <style>
-        /* BASE MOBILE-FIRST */
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent: #2563eb;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #334155;
-            --today-gold: #f59e0b;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 10px;
-            font-size: 16px; /* Évite le zoom auto sur iPhone */
-        }
-
-        .container { max-width: 100%; margin: 0 auto; }
-
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { font-size: 1.4rem; margin: 10px 0; }
-
-        /* CONTROLS (Empilés sur mobile) */
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            margin-bottom: 20px;
-        }
-
-        .control-group { display: flex; flex-direction: column; gap: 5px; }
-        
-        input, select, button {
+            background-color: #0f172a;
+            color: #f8fafc;
             padding: 12px;
-            font-size: 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: #0f172a;
-            color: white;
+            overflow-x: hidden;
+            width: 100vw;
+        }
+
+        /* BANNIÈRE INDICATRICE */
+        .date-badge {
+            text-align: center;
+            padding: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        /* CONTAINER DU TABLEAU RESPONSIVE (SANS DÉBORDEMENT) */
+        .table-responsive {
             width: 100%;
-            box-sizing: border-box;
-        }
-
-        button { background: var(--accent); border: none; font-weight: bold; cursor: pointer; }
-
-        /* TABLE RESPONSIVE */
-        .table-wrapper {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+            max-width: 100%;
             border-radius: 10px;
-            border: 1px solid var(--border);
+            border: 2px solid #334155;
+            background-color: #1e293b;
+            overflow: hidden;
         }
 
-        table { width: 100%; border-collapse: collapse; min-width: 500px; }
-        th { background: #111827; padding: 12px; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); }
-        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-
-        /* ÉTATS (Aujourd'hui / Passé) */
-        .is-past { opacity: 0.6; filter: grayscale(0.8); }
-        .is-today { border: 2px solid var(--today-gold); }
-        
-        .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-        .channel-tag { background: #334155; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; margin-right: 3px; }
-
-        /* MEDIA QUERY : Desktop (au-dessus de 768px) */
-        @media (min-width: 768px) {
-            .controls { flex-direction: row; align-items: flex-end; }
-            .control-group { flex: 1; }
-            button { width: auto; }
-            table { min-width: 100%; }
+        /* COULEURS DES ÉTATS (Jour Actuel / Passé) */
+        .table-responsive.is-today {
+            border-color: #f59e0b;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
         }
+
+        .table-responsive.is-today .date-badge {
+            background-color: #f59e0b;
+            color: #000;
+        }
+
+        .table-responsive.is-past {
+            opacity: 0.55;
+            filter: grayscale(0.8);
+            border-color: #1e293b;
+        }
+
+        .table-responsive.is-past .date-badge {
+            background-color: #334155;
+            color: #94a3b8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* Respect strict des largeurs de colonnes */
+        }
+
+        th {
+            background-color: #111827;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            padding: 10px 6px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px 6px;
+            border-bottom: 1px solid #334155;
+            font-size: 0.85rem;
+            word-wrap: break-word;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* BADGES DE STATUT ET TV */
+        .badge {
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .badge-live { background-color: #ef4444; color: #fff; }
+        .badge-final { background-color: #475569; color: #fff; }
+        .badge-sched { background-color: #2563eb; color: #fff; }
+
+        .channel-tag {
+            display: inline-block;
+            background-color: #1e3a8a;
+            color: #93c5fd;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin: 1px;
+            border: 1px solid #3b82f6;
+        }
+
+        /* DÉFINITION DES LARGEURS DE COLONNES */
+        .col-time { width: 18%; }
+        .col-match { width: 44%; }
+        .col-status { width: 18%; }
+        .col-tv { width: 20%; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header><h1>⚾ Baseball Direct</h1></header>
-
-    <div class="controls">
-        <div class="control-group">
-            <label>Date :</label>
-            <input type="date" id="datePicker">
-        </div>
-        <div class="control-group">
-            <label>Ligue :</label>
-            <select id="leagueSelect">
-                <option value="1">MLB</option>
-                <option value="11">MiLB (Triple-A)</option>
-                <option value="12">MiLB (Double-A)</option>
-            </select>
-        </div>
-        <button id="searchBtn">Charger</button>
-    </div>
-
-    <div class="table-wrapper" id="tableContainer">
-        <table>
-            <thead>
-                <tr>
-                    <th>Heure</th>
-                    <th>Match</th>
-                    <th>Statut</th>
-                    <th>TV</th>
-                </tr>
-            </thead>
-            <tbody id="gamesTableBody">
-                <tr><td colspan="4" style="text-align:center; padding:20px;">Sélectionnez une date.</td></tr>
-            </tbody>
-        </table>
-    </div>
+<div class="table-responsive" id="tableContainer">
+    <div class="date-badge" id="dateBadge">Chargement...</div>
+    <table>
+        <thead>
+            <tr>
+                <th class="col-time">Heure</th>
+                <th class="col-match">Match</th>
+                <th class="col-status">Statut</th>
+                <th class="col-tv">TV</th>
+            </tr>
+        </thead>
+        <tbody id="gamesTableBody">
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 20px;">Chargement des matchs...</td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 
 <script>
-    const dateInput = document.getElementById('datePicker');
-    const tableContainer = document.getElementById('tableContainer');
     const todayStr = new Date().toISOString().split('T')[0];
-    dateInput.value = todayStr;
 
-    document.getElementById('searchBtn').addEventListener('click', fetchGames);
+    // Chaînes autorisées pour le filtrage
+    const ALLOWED_CHANNELS = ['MLBN', 'MLB NETWORK', 'FS1', 'FOX', 'FOX SPORTS', 'MLB.TV'];
 
-    async function fetchGames() {
-        const date = dateInput.value;
-        const league = document.getElementById('leagueSelect').value;
+    async function loadGamesForDate(targetDate) {
+        const container = document.getElementById('tableContainer');
+        const badge = document.getElementById('dateBadge');
         const tbody = document.getElementById('gamesTableBody');
-        
-        tableContainer.className = 'table-wrapper';
-        if (date === todayStr) tableContainer.classList.add('is-today');
-        else if (date < todayStr) tableContainer.classList.add('is-past');
 
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chargement...</td></tr>';
+        container.classList.remove('is-today', 'is-past');
+
+        if (targetDate === todayStr) {
+            container.classList.add('is-today');
+            badge.textContent = "📅 Matchs du Jour (FOX / FS1 / MLBN / MLB.TV)";
+        } else if (targetDate < todayStr) {
+            container.classList.add('is-past');
+            badge.textContent = "📜 Matchs Passés (FOX / FS1 / MLBN / MLB.TV)";
+        } else {
+            badge.textContent = "🔮 Matchs À Venir (FOX / FS1 / MLBN / MLB.TV)";
+        }
 
         try {
-            const res = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=${league}&startDate=${date}&endDate=${date}&hydrate=broadcasts(all)`);
+            const res = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${targetDate}&endDate=${targetDate}&hydrate=broadcasts(all)`);
             const data = await res.json();
+            
             tbody.innerHTML = '';
 
-            if (!data.dates?.[0]?.games) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match.</td></tr>';
+            if (!data.dates || data.dates.length === 0 || !data.dates[0].games) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match au programme.</td></tr>';
                 return;
             }
 
-            data.dates[0].games.forEach(g => {
-                const time = new Date(g.gameDate).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit', timeZone:'Europe/Paris'});
+            let filteredGamesCount = 0;
+
+            data.dates[0].games.forEach(game => {
+                // Extrait toutes les chaînes associées au match
+                let gameChannels = [];
+                if (game.broadcasts && game.broadcasts.length > 0) {
+                    gameChannels = game.broadcasts.map(b => (b.callSign || b.name || '').toUpperCase());
+                }
+
+                // Vérifie si au moins une des chaînes correspond aux critères
+                const matchedChannels = gameChannels.filter(ch => 
+                    ALLOWED_CHANNELS.some(allowed => ch.includes(allowed))
+                );
+
+                // Si aucune chaîne recherchée n'est trouvée, on passe au match suivant
+                if (matchedChannels.length === 0) return;
+
+                filteredGamesCount++;
+
+                // Heure locale française
+                const frenchTime = new Date(game.gameDate).toLocaleTimeString('fr-FR', {
+                    hour: '2digit',
+                    minute: '2digit',
+                    timeZone: 'Europe/Paris'
+                });
+
+                // Statut
+                let statusBadge = '<span class="badge badge-sched">Prévu</span>';
+                if (game.status.abstractGameState === 'Live') {
+                    statusBadge = '<span class="badge badge-live">Direct</span>';
+                } else if (game.status.abstractGameState === 'Final') {
+                    statusBadge = '<span class="badge badge-final">Fini</span>';
+                }
+
+                // Affichage des chaînes filtrées
+                const uniqueMatched = [...new Set(matchedChannels)];
+                const tvList = uniqueMatched.slice(0, 2).map(c => `<span class="channel-tag">${c}</span>`).join('');
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><strong>${time}</strong></td>
-                    <td>${g.teams.away.team.name.slice(0,10)}<br>vs<br>${g.teams.home.team.name.slice(0,10)}</td>
-                    <td>${g.status.abstractGameState === 'Live' ? '<span style="color:red">● En direct</span>' : g.status.abstractGameState}</td>
-                    <td>${g.broadcasts?.slice(0,2).map(b=>`<span class="channel-tag">${b.callSign}</span>`).join('') || '-'}</td>
+                    <td class="col-time"><strong>${frenchTime}</strong></td>
+                    <td class="col-match">${game.teams.away.team.name}<br><small style="color:#94a3b8;">@</small> ${game.teams.home.team.name}</td>
+                    <td class="col-status">${statusBadge}</td>
+                    <td class="col-tv">${tvList}</td>
                 `;
                 tbody.appendChild(row);
             });
-        } catch(e) { tbody.innerHTML = '<tr><td colspan="4">Erreur.</td></tr>'; }
+
+            if (filteredGamesCount === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match sur FOX, FS1 ou MLBN pour cette date.</td></tr>';
+            }
+
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Erreur lors du chargement.</td></tr>';
+        }
     }
+
+    loadGamesForDate(todayStr);
 </script>
+
 </body>
-      </html>
-      
+</html>
