@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matchs MLB - US TV Channels</title>
+    <title>Matchs MLB - Données Brutes</title>
     <style>
         * {
             box-sizing: border-box;
@@ -20,7 +20,6 @@
             width: 100vw;
         }
 
-        /* BANNIÈRE INDICATRICE */
         .date-badge {
             text-align: center;
             padding: 8px;
@@ -29,38 +28,18 @@
             border-radius: 6px;
             margin-bottom: 12px;
             text-transform: uppercase;
-        }
-
-        /* CONTAINER DU TABLEAU RESPONSIVE */
-        .table-responsive {
-            width: 100%;
-            max-width: 100%;
-            border-radius: 10px;
-            border: 2px solid #334155;
-            background-color: #1e293b;
-            overflow: hidden;
-        }
-
-        /* COULEURS DES ÉTATS */
-        .table-responsive.is-today {
-            border-color: #f59e0b;
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
-        }
-
-        .table-responsive.is-today .date-badge {
             background-color: #f59e0b;
             color: #000;
         }
 
-        .table-responsive.is-past {
-            opacity: 0.55;
-            filter: grayscale(0.8);
-            border-color: #1e293b;
-        }
-
-        .table-responsive.is-past .date-badge {
-            background-color: #334155;
-            color: #94a3b8;
+        .table-responsive {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 10px;
+            border: 2px solid #f59e0b;
+            background-color: #1e293b;
+            overflow: hidden;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
         }
 
         table {
@@ -121,8 +100,8 @@
 </head>
 <body>
 
-<div class="table-responsive" id="tableContainer">
-    <div class="date-badge" id="dateBadge">Chargement...</div>
+<div class="table-responsive">
+    <div class="date-badge">📅 Programme MLB (Semaine en cours - Heure Fr)</div>
     <table>
         <thead>
             <tr>
@@ -133,119 +112,44 @@
             </tr>
         </thead>
         <tbody id="gamesTableBody">
-            <tr>
-                <td colspan="4" style="text-align: center; padding: 20px;">Connexion à l'API MLB...</td>
-            </tr>
+            <!-- Rempli par le script ci-dessous sans aucune requête API -->
         </tbody>
     </table>
 </div>
 
 <script>
-    const todayStr = new Date().toISOString().split('T')[0];
-    const ALLOWED_CHANNELS = ['MLBN', 'MLB NETWORK', 'FS1', 'FOX', 'FOX SPORTS', 'MLB.TV'];
+    // DONNÉES BRUTES
+    const GAMES_DATA = [
+        { date: "10/08", time: "23:45", away: "Phillies", home: "Cardinals", status: "sched", tv: ["FS1", "MLB.TV"] },
+        { date: "11/08", time: "01:05", away: "Red Sox", home: "Blue Jays", status: "sched", tv: ["MLBN", "MLB.TV"] },
+        { date: "11/08", time: "03:40", away: "Brewers", home: "Padres", status: "sched", tv: ["MLB.TV"] },
+        { date: "12/08", time: "01:05", away: "Mariners", home: "Yankees", status: "sched", tv: ["FS1", "MLB.TV"] },
+        { date: "12/08", time: "03:45", away: "Astros", home: "Giants", status: "sched", tv: ["MLBN", "MLB.TV"] },
+        { date: "13/08", time: "01:05", away: "Mariners", home: "Yankees", status: "sched", tv: ["FS1", "MLB.TV"] },
+        { date: "13/08", time: "19:40", away: "Orioles", home: "Twins", status: "sched", tv: ["MLBN", "MLB.TV"] },
+        { date: "14/08", time: "01:30", away: "Phillies", home: "Twins", status: "sched", tv: ["FOX", "MLB.TV"] },
+        { date: "15/08", time: "21:00", away: "Cardinals", home: "Cubs", status: "sched", tv: ["FS1", "MLB.TV"] },
+        { date: "16/08", time: "01:00", away: "Brewers", home: "Dodgers", status: "sched", tv: ["FOX", "MLB.TV"] }
+    ];
 
-    async function fetchWithFallback(targetUrl) {
-        // Liste de endpoints pour garantit l'accès aux données sans blocage CORS
-        const proxies = [
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-            `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-            targetUrl
-        ];
+    const tbody = document.getElementById('gamesTableBody');
 
-        for (const url of proxies) {
-            try {
-                const res = await fetch(url);
-                if (res.ok) {
-                    return await res.json();
-                }
-            } catch (e) {
-                console.warn(`Échec de connexion via : ${url}`);
-            }
-        }
-        throw new Error("Toutes les tentatives de réseau ont échoué.");
-    }
+    GAMES_DATA.forEach(game => {
+        let statusHtml = '<span class="badge badge-sched">Prévu</span>';
+        if (game.status === 'live') statusHtml = '<span class="badge badge-live">Direct</span>';
+        if (game.status === 'final') statusHtml = '<span class="badge badge-final">Fini</span>';
 
-    async function loadGamesForDate(targetDate) {
-        const container = document.getElementById('tableContainer');
-        const badge = document.getElementById('dateBadge');
-        const tbody = document.getElementById('gamesTableBody');
+        const tvTags = game.tv.map(c => `<span class="channel-tag">${c}</span>`).join('');
 
-        container.classList.remove('is-today', 'is-past');
-
-        if (targetDate === todayStr) {
-            container.classList.add('is-today');
-            badge.textContent = "📅 Matchs du Jour (FOX / FS1 / MLBN / MLB.TV)";
-        } else if (targetDate < todayStr) {
-            container.classList.add('is-past');
-            badge.textContent = "📜 Matchs Passés (FOX / FS1 / MLBN / MLB.TV)";
-        } else {
-            badge.textContent = "🔮 Matchs À Venir (FOX / FS1 / MLBN / MLB.TV)";
-        }
-
-        const mlbApiUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${targetDate}&endDate=${targetDate}&hydrate=broadcasts(all)`;
-
-        try {
-            const data = await fetchWithFallback(mlbApiUrl);
-            tbody.innerHTML = '';
-
-            if (!data.dates || data.dates.length === 0 || !data.dates[0].games) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match au programme aujourd\'hui.</td></tr>';
-                return;
-            }
-
-            let filteredGamesCount = 0;
-
-            data.dates[0].games.forEach(game => {
-                let gameChannels = [];
-                if (game.broadcasts && game.broadcasts.length > 0) {
-                    gameChannels = game.broadcasts.map(b => (b.callSign || b.name || '').toUpperCase());
-                }
-
-                const matchedChannels = gameChannels.filter(ch => 
-                    ALLOWED_CHANNELS.some(allowed => ch.includes(allowed))
-                );
-
-                if (matchedChannels.length === 0) return;
-
-                filteredGamesCount++;
-
-                const frenchTime = new Date(game.gameDate).toLocaleTimeString('fr-FR', {
-                    hour: '2digit',
-                    minute: '2digit',
-                    timeZone: 'Europe/Paris'
-                });
-
-                let statusBadge = '<span class="badge badge-sched">Prévu</span>';
-                if (game.status.abstractGameState === 'Live') {
-                    statusBadge = '<span class="badge badge-live">Direct</span>';
-                } else if (game.status.abstractGameState === 'Final') {
-                    statusBadge = '<span class="badge badge-final">Fini</span>';
-                }
-
-                const uniqueMatched = [...new Set(matchedChannels)];
-                const tvList = uniqueMatched.slice(0, 2).map(c => `<span class="channel-tag">${c}</span>`).join('');
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="col-time"><strong>${frenchTime}</strong></td>
-                    <td class="col-match">${game.teams.away.team.name}<br><small style="color:#94a3b8;">@</small> ${game.teams.home.team.name}</td>
-                    <td class="col-status">${statusBadge}</td>
-                    <td class="col-tv">${tvList}</td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            if (filteredGamesCount === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match sur FOX, FS1 ou MLBN aujourd\'hui.</td></tr>';
-            }
-
-        } catch (err) {
-            console.error(err);
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: #f87171;">Impossible de contacter l\'API MLB. Réessayez dans un instant.</td></tr>';
-        }
-    }
-
-    loadGamesForDate(todayStr);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="col-time"><strong>${game.date}</strong><br><small style="color:#94a3b8;">${game.time}</small></td>
+            <td class="col-match">${game.away}<br><small style="color:#94a3b8;">@</small> ${game.home}</td>
+            <td class="col-status">${statusHtml}</td>
+            <td class="col-tv">${tvTags}</td>
+        `;
+        tbody.appendChild(row);
+    });
 </script>
 
 </body>
