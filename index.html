@@ -31,7 +31,7 @@
             text-transform: uppercase;
         }
 
-        /* CONTAINER DU TABLEAU RESPONSIVE (SANS DÉBORDEMENT) */
+        /* CONTAINER DU TABLEAU RESPONSIVE */
         .table-responsive {
             width: 100%;
             max-width: 100%;
@@ -41,7 +41,7 @@
             overflow: hidden;
         }
 
-        /* COULEURS DES ÉTATS (Jour Actuel / Passé) */
+        /* COULEURS DES ÉTATS */
         .table-responsive.is-today {
             border-color: #f59e0b;
             box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
@@ -89,7 +89,6 @@
             border-bottom: none;
         }
 
-        /* BADGES DE STATUT ET TV */
         .badge {
             display: inline-block;
             padding: 2px 5px;
@@ -114,7 +113,6 @@
             border: 1px solid #3b82f6;
         }
 
-        /* DÉFINITION DES LARGEURS DE COLONNES */
         .col-time { width: 18%; }
         .col-match { width: 44%; }
         .col-status { width: 18%; }
@@ -136,7 +134,7 @@
         </thead>
         <tbody id="gamesTableBody">
             <tr>
-                <td colspan="4" style="text-align: center; padding: 20px;">Chargement des matchs...</td>
+                <td colspan="4" style="text-align: center; padding: 20px;">Connexion à l'API MLB...</td>
             </tr>
         </tbody>
     </table>
@@ -144,9 +142,28 @@
 
 <script>
     const todayStr = new Date().toISOString().split('T')[0];
-
-    // Chaînes autorisées pour le filtrage
     const ALLOWED_CHANNELS = ['MLBN', 'MLB NETWORK', 'FS1', 'FOX', 'FOX SPORTS', 'MLB.TV'];
+
+    async function fetchWithFallback(targetUrl) {
+        // Liste de endpoints pour garantit l'accès aux données sans blocage CORS
+        const proxies = [
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+            `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+            targetUrl
+        ];
+
+        for (const url of proxies) {
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    return await res.json();
+                }
+            } catch (e) {
+                console.warn(`Échec de connexion via : ${url}`);
+            }
+        }
+        throw new Error("Toutes les tentatives de réseau ont échoué.");
+    }
 
     async function loadGamesForDate(targetDate) {
         const container = document.getElementById('tableContainer');
@@ -165,26 +182,14 @@
             badge.textContent = "🔮 Matchs À Venir (FOX / FS1 / MLBN / MLB.TV)";
         }
 
-        // URL de l'API MLB ciblée
-        const targetUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${targetDate}&endDate=${targetDate}&hydrate=broadcasts(all)`;
-        
-        // Utilisation du proxy CORS pour compatibilité GitHub Pages / Navigateurs mobiles
-        const apiUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        const mlbApiUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${targetDate}&endDate=${targetDate}&hydrate=broadcasts(all)`;
 
         try {
-            let res = await fetch(apiUrl);
-            
-            // Fallback direct si le proxy échoue
-            if (!res.ok) {
-                res = await fetch(targetUrl);
-            }
-
-            const data = await res.json();
-            
+            const data = await fetchWithFallback(mlbApiUrl);
             tbody.innerHTML = '';
 
             if (!data.dates || data.dates.length === 0 || !data.dates[0].games) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match au programme.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match au programme aujourd\'hui.</td></tr>';
                 return;
             }
 
@@ -231,12 +236,12 @@
             });
 
             if (filteredGamesCount === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match sur FOX, FS1 ou MLBN pour cette date.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucun match sur FOX, FS1 ou MLBN aujourd\'hui.</td></tr>';
             }
 
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Erreur lors du chargement des données.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: #f87171;">Impossible de contacter l\'API MLB. Réessayez dans un instant.</td></tr>';
         }
     }
 
